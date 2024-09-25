@@ -41,7 +41,7 @@ const HomeNavbar = () => {
     
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const endpoint = isSignUp ? 'http://127.0.0.1:8000/users/signup/' : 'http://127.0.0.1:8000/users/signin/';
+        const endpoint = isSignUp ? 'http://127.0.0.1:8000/auth/signup/' : 'http://127.0.0.1:8000/auth/signin/';
 
         try {
             const response = await axios.post(endpoint, { username, password });
