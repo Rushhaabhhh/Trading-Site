@@ -4,7 +4,6 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'your-default-secret-key-for-development')
-ALPHA_VANTAGE_API_KEY = 'TKB2NG7NAZBXIOQQ'
 
 
 DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
@@ -20,7 +19,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'trading',
-    # 'corsheaders', 
 ]
 
 MIDDLEWARE = [
@@ -28,7 +26,6 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -67,7 +64,6 @@ CORS_ALLOWED_ORIGINS = [
     "https://your-domain.com",  
 ]
 
-# CORS_ALLOW_ALL_ORIGINS = True
 
 AUTH_PASSWORD_VALIDATORS = [
     {

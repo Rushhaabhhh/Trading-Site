@@ -12,92 +12,55 @@ from rest_framework.response import Response
 
 # Fetch trading data function
 def fetch_trading_data(symbol):
-    api_key = settings.ALPHA_VANTAGE_API_KEY
-    url = f"https://www.alphavantage.co/query"
-    params = {
-        'function': 'TIME_SERIES_INTRADAY',
-        'symbol': symbol,
-        'interval': '1min',
-        'apikey': api_key
+    dummy_data = {
+        "AAPL": 150.00,
+        "MSFT": 280.00,
+        "GOOGL": 2700.00,
+        "TSLA": 800.00
     }
+    return dummy_data.get(symbol, None)
 
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()  # Raises an error for bad responses
-        data = response.json()
-
-        # Navigate to the latest trading data
-        time_series = data.get('Time Series (1min)', {})
-        if time_series:
-            latest_time = sorted(time_series.keys())[0]  # Get the latest time key
-            latest_data = time_series[latest_time]
-            current_price = float(latest_data['1. open'])  # Use the '1. open' for the opening price
-            return current_price
-        else:
-            return None  # No data found for the given symbol
-    except requests.RequestException as e:
-        print(f"Error fetching data: {e}")
-        return None
 
 # Trade ViewSet
-# views.py
-
 class TradeViewSet(viewsets.ModelViewSet):
     queryset = Trade.objects.all()
     serializer_class = TradeSerializer
 
     def perform_create(self, serializer):
-        action = self.request.data.get('action')  # 'BUY' or 'SELL'
-        symbol = self.request.data.get('symbol')
-        quantity = self.request.data.get('quantity')
-        capital = self.request.data.get('capital')
-        entry_price = fetch_trading_data(symbol)  # Fetch real-time price
+        serializer.save(user=self.request.user)
 
-        # Save the trade
-        trade = serializer.save(
-            user=self.request.user,
-            action=action,
-            entry_price=entry_price
-        )
-
-        # Copy this trade to followers
-        self.copy_trade_to_followers(trade, quantity, capital, action)
-
-    def copy_trade_to_followers(self, trade, quantity, capital, action):
-        # Assuming you have a way to get followers
-        followers = User.objects.filter(following=trade.user)  # Example query
-        for follower in followers:
-            # Calculate how much to allocate for the copy
-            allocation = capital / quantity  # This can be modified according to your logic
-            CopyTradeViewSet.create_copy_trade(follower, trade, allocation, action)
 
 # CopyTrade ViewSet
 class CopyTradeViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 
-    @staticmethod
-    def create_copy_trade(follower, trade, allocation, action):
-        current_price = fetch_trading_data(trade.symbol) or trade.entry_price
-        quantity = allocation / current_price
+    @action(detail=False, methods=['post'])
+    def copy(self, request):
+        trade_id = request.data.get('trade_id')
+        if not trade_id:
+            return Response({"error": "Trade ID not provided"}, status=status.HTTP_400_BAD_REQUEST)
 
-        new_trade = Trade.objects.create(
-            user=follower,  # Linking to the follower's account
-            name=trade.name,
-            capital=allocation,
-            symbol=trade.symbol,
-            segment=trade.segment,
-            expiry=trade.expiry,
-            buy_sell=trade.buy_sell,
-            quantity=quantity,
-            entry_price=current_price,
-            target_price=trade.target_price,
-            stop_loss=trade.stop_loss,
-            action=action
-        )
+        try:
+            trade_to_copy = Trade.objects.get(id=trade_id)
+            current_price = fetch_trading_data(trade_to_copy.symbol) or trade_to_copy.entry_price
 
-        serializer = TradeSerializer(new_trade)
-        return serializer.data  # Or do something else as needed
+            new_trade = Trade.objects.create(
+                name=trade_to_copy.name,
+                capital=trade_to_copy.capital,
+                symbol=trade_to_copy.symbol,
+                segment=trade_to_copy.segment,
+                expiry=trade_to_copy.expiry,
+                buy_sell=trade_to_copy.buy_sell,
+                quantity=trade_to_copy.quantity,
+                entry_price=current_price,
+                target_price=trade_to_copy.target_price,
+                stop_loss=trade_to_copy.stop_loss,
+            )
 
+            serializer = TradeSerializer(new_trade)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Trade.DoesNotExist:
+            return Response({"error": "Trade not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 # Auth ViewSet for handling signup and login
