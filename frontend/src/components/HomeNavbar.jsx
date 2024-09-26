@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import logo from '../assets/AlgoLogo.png';
+import axios from 'axios';
 import { Link } from 'react-scroll';
 import { User } from 'lucide-react';
-import axios from 'axios';
-import { faEnvelope, faLock, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEnvelope, faLock, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+
+import logo from '../assets/AlgoLogo.png';
 
 const HomeNavbar = () => {
     const [openDropdown, setOpenDropdown] = useState(null);

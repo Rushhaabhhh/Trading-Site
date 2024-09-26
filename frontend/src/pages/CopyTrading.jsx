@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Modal from 'react-modal';
+import { Link } from 'react-scroll';
+import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChartLine, faCopy } from "@fortawesome/free-solid-svg-icons";
-import { Link } from 'react-scroll';
 import { faArrowRightFromBracket } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate } from 'react-router-dom';
 
+import Chart from '../components/Chart';
 import logo from '../assets/AlgoLogo.png';
+import ProfileModal from '../components/ProfileModal';
 
 const CopyTradingPage = () => {
     const [masterTrades, setMasterTrades] = useState([]);
@@ -16,8 +18,18 @@ const CopyTradingPage = () => {
     const [selectedTrade, setSelectedTrade] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [openDropdown, setOpenDropdown] = useState(null);
+    const [isProfileModalOpen, setProfileModalOpen] = useState(false);
+
+    const toggleProfileModal = () => {
+        setProfileModalOpen(!isProfileModalOpen);
+    }
+
 
     const navigate = useNavigate();
+
+    useEffect(() => {
+        Modal.setAppElement('#ProfileModal'); // Ensure this is the correct ID for your app element
+    }, []);
 
     // Fetch trades from the backend on component mount
     useEffect(() => {
@@ -172,12 +184,22 @@ const CopyTradingPage = () => {
                     <Link to="Pricing" smooth={true} duration={500} offset={-90} className="text-black hover:text-blue-800 transition-colors font-semibold">Reports</Link>
                 </div>
 
-                <button onClick={logout} className="flex items-center px-4 py-2 rounded-3xl text-lg hover:text-gray-800 hover:bg-opacity-30 hover:border-gray-800  hover:border-2 transition-colors duration-300 bg-black bg-opacity-0 border-2 border-black text-black font-bold">
-                <FontAwesomeIcon icon={faArrowRightFromBracket} className='mr-2' /> Logout
-                    </button>
-
+                <button 
+                    onClick={toggleProfileModal} 
+                    className="flex items-center px-4 py-2 rounded-3xl text-lg hover:text-gray-800 hover:bg-opacity-30 hover:border-gray-800 hover:border-2 transition-colors duration-300 bg-black bg-opacity-0 border-2 border-black text-black font-bold"
+                >
+                    <FontAwesomeIcon icon={faArrowRightFromBracket} className='mr-2' /> Profile
+                </button>
                 
             </nav>
+            <div id="ProfileModal">
+            {/* Profile Modal */}
+            <ProfileModal 
+                isOpen={isProfileModalOpen} 
+                onRequestClose={toggleProfileModal} 
+                logout={logout} 
+            />
+            </div>
 
                 <div className="container mx-auto px-4 pt-2 pb-12">
                 <header className="text-center mb-12">
@@ -217,7 +239,9 @@ const CopyTradingPage = () => {
                             ))}
                             </div>
                         </div>
+                    {/* <Chart /> */}
                     </div>
+
                 </div>
             </div>
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import HomeNavbar from '../components/HomeNavbar';
+
 import bg1 from '../assets/bg-1.png';
 import bg2 from '../assets/bg-2.png';
 import video from '../assets/video.mp4';
