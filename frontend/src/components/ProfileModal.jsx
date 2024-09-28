@@ -21,13 +21,13 @@ const customStyles = {
 
 const ProfileModal = ({ isOpen, onRequestClose, logout }) => {
     const [userData, setUserData] = useState({
-        name: '',
-        email: '',
-        accountType: '',
-        accountNumber: '',
-        balance: '',
-        stocks: '',
-        strategy: '',
+        name: 'John Doe',
+        email: 'joh123@gmail.com',
+        accountType: 'Pro',
+        accountNumber: '1234567',
+        balance: '324000',
+        stocks: 'IBM, AAPL',
+        strategy: 'Bear Put Spread',
     });
 
     useEffect(() => {
@@ -56,7 +56,7 @@ const ProfileModal = ({ isOpen, onRequestClose, logout }) => {
             onAfterOpen={() => {
                 document.querySelector('.ReactModal__Content').style.transform = 'translateX(0)'; // Slide in
             }}
-            onRequestClose={() => {
+            onRequestclose={() => {
                 document.querySelector('.ReactModal__Content').style.transform = 'translateX(100%)'; // Slide out
                 setTimeout(onRequestClose, 300); // Delay closing the modal
             }}
