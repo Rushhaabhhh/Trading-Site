@@ -239,7 +239,7 @@ const CopyTradingPage = () => {
                             ))}
                             </div>
                         </div>
-                    <Chart />
+                    {/* <Chart /> */}
                     </div>
 
                 </div>

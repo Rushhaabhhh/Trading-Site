@@ -67,7 +67,7 @@ const HomeNavbar = () => {
             <nav className='flex justify-between p-4 mt-1 fixed top-0 left-0 right-0 z-35'>
                 <div className="flex items-center">
                     <img src={logo} alt="Logo" className="h-12 w-12 mr-2" />
-                    <span className="text-4xl font-bold">THE ALGOMATIC</span>
+                    <span className="text-4xl font-bold">TRADING SITE</span>
                 </div>
 
                 <div className="flex space-x-6 text-xl cursor-pointer mr-0 mt-2">
