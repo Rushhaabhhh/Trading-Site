@@ -2,7 +2,7 @@ import kiteapp as kt
 from time import sleep
 with open('enctoken.txt', 'r') as rd:
 	token = rd.read()
-kite = kt.KiteApp("Naitik", "VTE578", token)
+kite = kt.KiteApp("Rushabh", "OJF708", token)
 kws = kite.kws() 
 
 
