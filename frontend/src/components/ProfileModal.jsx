@@ -1,141 +1,72 @@
-import React, { useEffect, useState } from 'react';
-import Modal from 'react-modal';
+import React, { useState } from 'react';
+import axios from 'axios';
 
-// Modal styling for the transition effect
-const customStyles = {
-    content: {
-        top: '0',
-        left: 'auto',
-        right: '0',
-        bottom: '0',
-        width: '23%',
-        height: '100%',
-        transition: 'transform 0.3s ease-in-out',
-        transform: 'translateX(100%)',
-        zIndex: '1000',
-    },
-    overlay: {
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-};
+const DematLogin = () => {
+    const [userId, setUserId] = useState('');
+    const [password, setPassword] = useState('');
+    const [twoFa, setTwoFa] = useState('');
+    const [message, setMessage] = useState('');
 
-const ProfileModal = ({ isOpen, onRequestClose, logout }) => {
-    const [userData, setUserData] = useState({
-        name: 'John Doe',
-        email: 'joh123@gmail.com',
-        accountType: 'Pro',
-        accountNumber: '1234567',
-        balance: '324000',
-        stocks: 'IBM, AAPL',
-        strategy: 'Bear Put Spread',
-    });
+    const handleLogin = async (e) => {
+        e.preventDefault();
 
-    useEffect(() => {
-        // Load user data from local storage on component mount
-        const storedData = JSON.parse(localStorage.getItem('userData'));
-        if (storedData) {
-            setUserData(storedData);
+        try {
+            const response = await axios.post('http://localhost:8080/demat/login', {
+                userId,
+                password,
+                twoFa,
+            });
+
+            setMessage(response.data.message);
+        } catch (error) {
+            setMessage(error.response?.data?.message || 'Login failed. Please try again.');
         }
-    }, []);
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setUserData((prevData) => ({
-            ...prevData,
-            [name]: value,
-        }));
-        localStorage.setItem('userData', JSON.stringify({ ...userData, [name]: value }));
     };
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onRequestClose={onRequestClose}
-            style={customStyles}
-            ariaHideApp={false}
-            onAfterOpen={() => {
-                document.querySelector('.ReactModal__Content').style.transform = 'translateX(0)'; // Slide in
-            }}
-            onRequestclose={() => {
-                document.querySelector('.ReactModal__Content').style.transform = 'translateX(100%)'; // Slide out
-                setTimeout(onRequestClose, 300); // Delay closing the modal
-            }}
-        >
-            <div className="bg-white p-6 rounded-lg shadow-lg h-full">
-                <h2 className="text-xl font-bold mb-4">User Profile</h2>
+        <div className="max-w-md mx-auto mt-10">
+            <h2 className="text-2xl font-bold mb-6">Demat Account Login</h2>
+            <form onSubmit={handleLogin} className="bg-white p-6 rounded-lg shadow-md">
                 <div className="mb-4">
-                    <label className="block text-sm font-semibold">Name:</label>
+                    <label className="block text-sm font-semibold mb-2">User ID</label>
                     <input
                         type="text"
-                        name="name"
-                        value={userData.name}
-                        onChange={handleChange}
+                        value={userId}
+                        onChange={(e) => setUserId(e.target.value)}
                         className="border rounded-md p-2 w-full"
+                        required
                     />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-sm font-semibold">Email:</label>
+                    <label className="block text-sm font-semibold mb-2">Password</label>
                     <input
-                        type="email"
-                        name="email"
-                        value={userData.email}
-                        onChange={handleChange}
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         className="border rounded-md p-2 w-full"
+                        required
                     />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-sm font-semibold">Account Type:</label>
+                    <label className="block text-sm font-semibold mb-2">Two-Factor Authentication Code</label>
                     <input
                         type="text"
-                        name="accountType"
-                        value={userData.accountType}
-                        onChange={handleChange}
+                        value={twoFa}
+                        onChange={(e) => setTwoFa(e.target.value)}
                         className="border rounded-md p-2 w-full"
-                    />
-                </div>
-                <div className="mb-4">
-                    <label className="block text-sm font-semibold">Account Number:</label>
-                    <p className="text-gray-700">{userData.accountNumber}</p>
-                </div>
-                <div className="mb-4">
-                    <label className="block text-sm font-semibold">Balance:</label>
-                    <p className="text-gray-700">{userData.balance}</p>
-                </div>
-                <div className="mb-4">
-                    <label className="block text-sm font-semibold">Stocks:</label>
-                    <input
-                        type="text"
-                        name="stocks"
-                        value={userData.stocks}
-                        onChange={handleChange}
-                        className="border rounded-md p-2 w-full"
-                    />
-                </div>
-                <div className="mb-4">
-                    <label className="block text-sm font-semibold">Strategy:</label>
-                    <input
-                        type="text"
-                        name="strategy"
-                        value={userData.strategy}
-                        onChange={handleChange}
-                        className="border rounded-md p-2 w-full"
+                        required
                     />
                 </div>
                 <button
-                    onClick={logout}
-                    className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                    type="submit"
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                 >
-                    Logout
+                    Login
                 </button>
-                <button
-                    onClick={onRequestClose}
-                    className="mt-2 px-4 py-2 bg-gray-300 text-black rounded-md hover:bg-gray-400 transition-colors"
-                >
-                    Close
-                </button>
-            </div>
-        </Modal>
+            </form>
+            {message && <p className="mt-4 text-center text-red-600">{message}</p>}
+        </div>
     );
 };
 
-export default ProfileModal;
+export default DematLogin;

@@ -20,6 +20,10 @@ EXPIRY_CHOICES = [
     ('monthly', 'Monthly'),
 ]
 
+class UserFollower(models.Model):
+    master_trader = models.ForeignKey(User, related_name='master_traders', on_delete=models.CASCADE)
+    follower_user = models.ForeignKey(User, related_name='followers', on_delete=models.CASCADE)
+
 class Trade(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100, help_text="Name of the trade", default="")
