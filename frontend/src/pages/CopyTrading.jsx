@@ -1,4 +1,3 @@
-import axios from 'axios';
 import Modal from 'react-modal';
 import { Link } from 'react-scroll';
 import { useNavigate } from 'react-router-dom';
@@ -12,9 +11,12 @@ import logo from '../assets/AlgoLogo.png';
 import ProfileModal from '../components/ProfileModal';
 
 const CopyTradingPage = () => {
-    const [masterTrades, setMasterTrades] = useState([]);
+    const [masterTrades, setMasterTrades] = useState([
+        { id: 1, name: 'Strategy A' },
+        { id: 2, name: 'Strategy B' },
+        { id: 3, name: 'Strategy C' },
+    ]);
     const [userTrades, setUserTrades] = useState([]);
-    const [error, setError] = useState('');
     const [selectedTrade, setSelectedTrade] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [openDropdown, setOpenDropdown] = useState(null);
@@ -24,62 +26,31 @@ const CopyTradingPage = () => {
         setProfileModalOpen(!isProfileModalOpen);
     }
 
-
     const navigate = useNavigate();
 
     useEffect(() => {
         Modal.setAppElement('#ProfileModal'); // Ensure this is the correct ID for your app element
     }, []);
 
-    // Fetch trades from the backend on component mount
-    useEffect(() => {
-        const fetchTrades = async () => {
-            try {
-                const masterResponse = await axios.get('http://127.0.0.1:8000/trades/');
-                setMasterTrades(masterResponse.data);
-                
-                // Fetch user trades from local storage
-                const storedUserTrades = JSON.parse(localStorage.getItem('userTrades') || '[]');
-                setUserTrades(storedUserTrades);
-            } catch (err) {
-                setError(err.message);
-                console.error(err);
-            }
-        };
-        fetchTrades();
-    }, []);
-
     // Copy an existing trade
-    const copyTrade = async () => {
+    const copyTrade = () => {
         if (!selectedTrade) return;
-        try {
-            // Check if the selected trade already exists in userTrades
-            const existingTrade = userTrades.find((trade) => trade.id === selectedTrade.id);
+        const existingTrade = userTrades.find((trade) => trade.id === selectedTrade.id);
 
-            if (existingTrade) {
-                const updatedTrades = userTrades.filter((trade) => trade.id !== selectedTrade.id);
-                const newTrade = {
-                    ...selectedTrade,
-                    strategy: 'New Strategy'
-                };
-                setUserTrades([...updatedTrades, newTrade]);
-                localStorage.setItem('userTrades', JSON.stringify([...updatedTrades, newTrade]));
-            } else {
-                await axios.post(`http://127.0.0.1:8000/copytrades/copy/`, {
-                    trade_id: selectedTrade.id
-                });
-                const newUserTrades = [...userTrades, selectedTrade];
-                setUserTrades(newUserTrades);
-                localStorage.setItem('userTrades', JSON.stringify(newUserTrades));
-            }
-            setModalOpen(false);
-            setSelectedTrade(null);
-        } catch (err) {
-            console.error(err);
-            alert('Error copying trade');
+        if (existingTrade) {
+            const updatedTrades = userTrades.filter((trade) => trade.id !== selectedTrade.id);
+            const newTrade = {
+                ...selectedTrade,
+                strategy: 'New Strategy'
+            };
+            setUserTrades([...updatedTrades, newTrade]);
+        } else {
+            const newUserTrades = [...userTrades, selectedTrade];
+            setUserTrades(newUserTrades);
         }
+        setModalOpen(false);
+        setSelectedTrade(null);
     };
-
 
     const TradeCard = ({ trade, isMasterTrade = false }) => (
         <div className="bg-white rounded-lg shadow-md p-4 mb-4 hover:shadow-lg transition duration-300">
@@ -126,62 +97,11 @@ const CopyTradingPage = () => {
                 </div>
 
                 <div className="flex space-x-6 text-xl cursor-pointer mr-0 mt-2">
-                    <div className="relative">
-                        <button className="text-black hover:text-blue-800 transition-colors font-semibold">
-                            Dashboard
-                        </button>
-                        
-                    </div>
-
-                    <div className="relative">
-                        <button onClick={() => toggleDropdown('Create')} className="text-black hover:text-blue-800 transition-colors font-semibold">
-                            Create
-                        </button>
-                        <svg className={`inline-block ml-1 w-4 h-4 transform transition-transform ${openDropdown === 'Create' ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                        {openDropdown === 'Create' && (
-                            <div className="absolute left-0 mt-2 w-48 bg-white shadow-lg rounded-md">
-                                <Link to="UseCase1" smooth={true} duration={500} offset={-90} className="block px-4 py-2 hover:bg-gray-100 text-sm font-semibold">Advanced</Link>
-                                <Link to="UseCase2" smooth={true} duration={500} offset={-90} className="block px-4 py-2 hover:bg-gray-100 text-sm font-semibold">Use Stock Bag</Link>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="relative">
-                        <button onClick={() => toggleDropdown('strategies')} className="text-black hover:text-blue-800 transition-colors font-semibold">
-                            Strategies
-                        </button>
-                        <svg className={`inline-block ml-1 w-4 h-4 transform transition-transform ${openDropdown === 'strategies' ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                        {openDropdown === 'strategies' && (
-                            <div className="absolute left-0 mt-2 w-48 bg-white shadow-lg rounded-md">
-                                <Link to="Strategy1" smooth={true} duration={500} offset={-90} className="block px-4 py-2 hover:bg-gray-100 text-sm font-semibold">Marketplace</Link>
-                                <Link to="Strategy2" smooth={true} duration={500} offset={-90} className="block px-4 py-2 hover:bg-gray-100 text-sm font-semibold">Top Creators</Link>
-                                <Link to="Strategy3" smooth={true} duration={500} offset={-90} className="block px-4 py-2 hover:bg-gray-100 text-sm font-semibold">Top My Strategies</Link>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="relative">
-                        <button onClick={() => toggleDropdown('services')} className="text-black hover:text-blue-800 transition-colors font-semibold">
-                            Services
-                        </button>
-                        <svg className={`inline-block ml-1 w-4 h-4 transform transition-transform ${openDropdown === 'services' ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                        {openDropdown === 'services' && (
-                            <div className="absolute left-0 mt-2 w-48 bg-white shadow-lg rounded-md">
-                                <Link to="Service1" smooth={true} duration={500} offset={-90} className="block px-4 py-2 hover:bg-gray-100 text-sm font-semibold">TT UNI</Link>
-                                <Link to="Service2" smooth={true} duration={500} offset={-90} className="block px-4 py-2 hover:bg-gray-100 text-sm font-semibold">TT QUANTS</Link>
-                                <Link to="Service2" smooth={true} duration={500} offset={-90} className="block px-4 py-2 hover:bg-gray-100 text-sm font-semibold">TT ASSISTANT</Link>
-                                <Link to="Service2" smooth={true} duration={500} offset={-90} className="block px-4 py-2 hover:bg-gray-100 text-sm font-semibold">TT WHITELABEL</Link>
-                            </div>
-                        )}
-                    </div>
-
-                    <Link to="Pricing" smooth={true} duration={500} offset={-90} className="text-black hover:text-blue-800 transition-colors font-semibold">Reports</Link>
+                    <Link to="Dashboard" smooth={true} duration={500} offset={-90} className="text-black hover:text-blue-800 transition-colors font-semibold">Dashboard</Link>
+                    <Link to="Create" smooth={true} duration={500} offset={-90} className="text-black hover:text-blue-800 transition-colors font-semibold">Create</Link>
+                    <Link to="Strategies" smooth={true} duration={500} offset={-90} className="text-black hover:text-blue-800 transition-colors font-semibold">Strategies</Link>
+                    <Link to="Services" smooth={true} duration={500} offset={-90} className="text-black hover:text-blue-800 transition-colors font-semibold">Services</Link>
+                    <Link to="Reports" smooth={true} duration={500} offset={-90} className="text-black hover:text-blue-800 transition-colors font-semibold">Reports</Link>
                 </div>
 
                 <button 
@@ -190,18 +110,18 @@ const CopyTradingPage = () => {
                 >
                     <FontAwesomeIcon icon={faArrowRightFromBracket} className='mr-2' /> Profile
                 </button>
-                
             </nav>
+
             <div id="ProfileModal">
-            {/* Profile Modal */}
-            <ProfileModal 
-                isOpen={isProfileModalOpen} 
-                onRequestClose={toggleProfileModal} 
-                logout={logout} 
-            />
+                {/* Profile Modal */}
+                <ProfileModal 
+                    isOpen={isProfileModalOpen} 
+                    onRequestClose={toggleProfileModal} 
+                    logout={logout} 
+                />
             </div>
 
-                <div className="container mx-auto px-4 pt-2 pb-12">
+            <div className="container mx-auto px-4 pt-2 pb-12">
                 <header className="text-center mb-12">
                     <h1 className="text-5xl font-bold text-gray-800 mb-4">Copy Trading</h1>
                     <h2 className="text-3xl text-gray-600 italic">Select and replicate winning strategies!</h2>
@@ -228,61 +148,15 @@ const CopyTradingPage = () => {
                             <div className="bg-gradient-to-r from-gray-800 via-gray-600 to-gray-700 p-4">
                                 <h3 className="text-3xl font-semibold text-white text-center">My Strategy</h3>
                             </div>
-                            <div className="grid grid-cols-2 gap-4 mb-6 mt-4 p-6">
-                            {selectedTrade &&  Object.entries(selectedTrade).map(([key, value]) => (
-                                key !== 'id' && key !== 'name' && (
-                                    <div key={key}>
-                                        <p className="text-sm text-gray-600 capitalize">{key.replace('_', ' ')}</p>
-                                        <p className="text-xl font-semibold text-gray-800">{value}</p>
-                                    </div>
-                                )
-                            ))}
+                            <div className="p-4">
+                                {userTrades.map((trade) => (
+                                    <TradeCard key={trade.id} trade={trade} />
+                                ))}
                             </div>
                         </div>
-                    {/* <Chart /> */}
                     </div>
-
                 </div>
             </div>
-
-
-            {/* Modal for Selected Trade */}
-            <Modal 
-                isOpen={modalOpen} 
-                onRequestClose={() => setModalOpen(false)} 
-                className="modal fixed inset-0 flex items-center justify-center"
-                overlayClassName="overlay fixed inset-0 bg-black bg-opacity-50"
-            >
-                {selectedTrade && (
-                    <div className="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full max-h-90vh overflow-y-auto">
-                        <h2 className="text-3xl font-bold mb-4 text-gray-800">{selectedTrade.name}</h2>
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                            {selectedTrade &&  Object.entries(selectedTrade).map(([key, value]) => (
-                                key !== 'id' && key !== 'name' && (
-                                    <div key={key}>
-                                        <p className="text-sm text-gray-600 capitalize">{key.replace('_', ' ')}</p>
-                                        <p className="text-xl font-semibold text-gray-800">{value}</p>
-                                    </div>
-                                )
-                            ))}
-                        </div>
-                        <div className="flex justify-end space-x-4">
-                            <button 
-                                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 transition duration-150 ease-in-out"
-                                onClick={() => setModalOpen(false)}
-                            >
-                                Close
-                            </button>
-                            <button 
-                                className="px-6 py-2 bg-gradient-to-r from-[#e16477] to-[#fa957e] text-white rounded-full hover:from-[#d15467] hover:to-[#e9846e] transition duration-150 ease-in-out"
-                                onClick={copyTrade}
-                            >
-                                Copy Strategy
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </Modal>
         </div>
     );
 };

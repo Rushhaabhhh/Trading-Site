@@ -1,6 +1,10 @@
-from rest_framework import serializers
+from django.db import models
 from django.contrib.auth.models import User
-from .models import Trade
+from .models import ZerodhaAccount, Order
+from rest_framework import serializers
+from rest_framework import viewsets, status
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 
 # UserSerializer for managing user data and authentication
 class UserSerializer(serializers.ModelSerializer):
@@ -18,49 +22,37 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 
-# TradeSerializer for handling trade creation and displaying trade data
-class TradeSerializer(serializers.ModelSerializer):
-    user = serializers.ReadOnlyField(source='user.username') 
+# Auth ViewSet for handling signup and login
+class AuthViewSet(viewsets.GenericViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
 
+    def create(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({"id": user.id, "username": user.username}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def login(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return Response({"message": "Login successful"}, status=status.HTTP_200_OK)
+        return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+    
+class ZerodhaAccountSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Trade
-        fields = [
-            'id', 'user', 'name', 'capital', 'symbol', 'segment', 'expiry',
-            'buy_sell', 'quantity', 'entry_price', 'target_price', 'stop_loss',
-            'created_at'
-        ]
+        model = ZerodhaAccount
+        fields = ['id', 'zerodha_user_id', 'zerodha_password', 'totp_secret']
+        extra_kwargs = {
+            'zerodha_password': {'write_only': True},
+            'totp_secret': {'write_only': True},
+        }
 
-    def create(self, validated_data):
-        validated_data.pop('user', None)  
-        trade = Trade.objects.create(**validated_data)
-        return trade
-
-
-# Serializer for copying a trade
-class CopyTradeSerializer(serializers.ModelSerializer):
+class OrderSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Trade
-        fields = [
-            'id', 'name', 'capital', 'symbol', 'segment', 'expiry',
-            'buy_sell', 'quantity', 'entry_price', 'target_price', 'stop_loss'
-        ]
-
-    def create(self, validated_data):
-        original_trade = self.context.get('original_trade')
-        if not original_trade:
-            raise serializers.ValidationError("Original trade must be provided in context.")
-
-        new_trade = Trade.objects.create(
-            user=self.context['request'].user,
-            name=original_trade.name,
-            capital=original_trade.capital,
-            symbol=original_trade.symbol,
-            segment=original_trade.segment,
-            expiry=original_trade.expiry,
-            buy_sell=original_trade.buy_sell,
-            quantity=original_trade.quantity,
-            entry_price=original_trade.entry_price,
-            target_price=original_trade.target_price,
-            stop_loss=original_trade.stop_loss
-        )
-        return new_trade
+        model = Order  # Replace with your actual Order model
+        fields = ['id', 'symbol', 'quantity', 'order_type', 'price']

@@ -1,72 +1,78 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const DematLogin = () => {
-    const [userId, setUserId] = useState('');
-    const [password, setPassword] = useState('');
-    const [twoFa, setTwoFa] = useState('');
+const PlaceOrder = () => {
+    const [orderDetails, setOrderDetails] = useState({
+        symbol: "AAPL",
+        quantity: 10,
+        order_type: "buy",
+        price: 150.00
+    });
     const [message, setMessage] = useState('');
 
-    const handleLogin = async (e) => {
+    const handlePlaceOrder = async (e) => {
         e.preventDefault();
+        const zerodhaAccountId = 1; // Dummy ID for testing
+        const token = "2zkd1Pv95cXVDyiHtIHV4kFmmzNVLEay1w67x3zl9LPX3nlNXpKh463MQcJiPSV5nQBkLGUKttVm++JOD+XN30A/nntxgi3Bh0LTN3cTa4aQO7w0s2AeUA=="; // Replace with a valid auth token
 
         try {
-            const response = await axios.post('http://localhost:8080/demat/login', {
-                userId,
-                password,
-                twoFa,
-            });
-
-            setMessage(response.data.message);
+            const response = await axios.post(
+                `http://127.0.0.1:8000/demat/${zerodhaAccountId}/place_order/`,
+                orderDetails,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            setMessage(`Order placed successfully! Order ID: ${response.data.order_id}`);
         } catch (error) {
-            setMessage(error.response?.data?.message || 'Login failed. Please try again.');
+            setMessage(error.response?.data?.error || 'Error placing order');
         }
     };
 
     return (
-        <div className="max-w-md mx-auto mt-10">
-            <h2 className="text-2xl font-bold mb-6">Demat Account Login</h2>
-            <form onSubmit={handleLogin} className="bg-white p-6 rounded-lg shadow-md">
-                <div className="mb-4">
-                    <label className="block text-sm font-semibold mb-2">User ID</label>
-                    <input
-                        type="text"
-                        value={userId}
-                        onChange={(e) => setUserId(e.target.value)}
-                        className="border rounded-md p-2 w-full"
-                        required
-                    />
-                </div>
-                <div className="mb-4">
-                    <label className="block text-sm font-semibold mb-2">Password</label>
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="border rounded-md p-2 w-full"
-                        required
-                    />
-                </div>
-                <div className="mb-4">
-                    <label className="block text-sm font-semibold mb-2">Two-Factor Authentication Code</label>
-                    <input
-                        type="text"
-                        value={twoFa}
-                        onChange={(e) => setTwoFa(e.target.value)}
-                        className="border rounded-md p-2 w-full"
-                        required
-                    />
-                </div>
-                <button
-                    type="submit"
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                >
-                    Login
-                </button>
+        <div>
+            <h2>Place Order</h2>
+            <form onSubmit={handlePlaceOrder}>
+                <input
+                    type="text"
+                    name="symbol"
+                    value={orderDetails.symbol}
+                    onChange={(e) => setOrderDetails({ ...orderDetails, symbol: e.target.value })}
+                    placeholder="Symbol"
+                    required
+                />
+                <input
+                    type="number"
+                    name="quantity"
+                    value={orderDetails.quantity}
+                    onChange={(e) => setOrderDetails({ ...orderDetails, quantity: Number(e.target.value) })}
+                    placeholder="Quantity"
+                    required
+                />
+                <input
+                    type="text"
+                    name="order_type"
+                    value={orderDetails.order_type}
+                    onChange={(e) => setOrderDetails({ ...orderDetails, order_type: e.target.value })}
+                    placeholder="Order Type"
+                    required
+                />
+                <input
+                    type="number"
+                    name="price"
+                    value={orderDetails.price}
+                    onChange={(e) => setOrderDetails({ ...orderDetails, price: Number(e.target.value) })}
+                    placeholder="Price"
+                    required
+                />
+                <button type="submit">Place Order</button>
             </form>
-            {message && <p className="mt-4 text-center text-red-600">{message}</p>}
+            {message && <p>{message}</p>}
         </div>
     );
 };
 
-export default DematLogin;
+export default PlaceOrder;
