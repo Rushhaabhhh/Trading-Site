@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from .models import ZerodhaAccount, Order
+from .models import ZerodhaAccount
 from rest_framework import serializers
 from rest_framework import viewsets, status
 from rest_framework.permissions import AllowAny
@@ -43,16 +43,13 @@ class AuthViewSet(viewsets.GenericViewSet):
             return Response({"message": "Login successful"}, status=status.HTTP_200_OK)
         return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
     
-class ZerodhaAccountSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ZerodhaAccount
-        fields = ['id', 'zerodha_user_id', 'zerodha_password', 'totp_secret']
-        extra_kwargs = {
-            'zerodha_password': {'write_only': True},
-            'totp_secret': {'write_only': True},
-        }
-
-class OrderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Order  # Replace with your actual Order model
-        fields = ['id', 'symbol', 'quantity', 'order_type', 'price']
+class OrderSerializer(serializers.Serializer):
+    variety = serializers.CharField()
+    exchange = serializers.CharField()
+    tradingsymbol = serializers.CharField()
+    transaction_type = serializers.CharField()
+    quantity = serializers.IntegerField()
+    product = serializers.CharField()
+    order_type = serializers.CharField()
+    price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    validity = serializers.CharField()

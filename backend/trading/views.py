@@ -1,20 +1,21 @@
-import requests
 import json
+import logging
+import os
+
 from django.conf import settings
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from kiteconnect import KiteConnect, KiteTicker
 
 from .models import ZerodhaAccount
-from .serializers import UserSerializer, ZerodhaAccountSerializer, OrderSerializer
+from .serializers import UserSerializer, OrderSerializer
 from .utils import KiteApp
-
-import logging
-from kiteconnect import KiteConnect, KiteTicker
 
 class KiteApp(KiteConnect):
     def __init__(self, userid, enctoken):
@@ -130,107 +131,37 @@ class AuthViewSet(viewsets.GenericViewSet):
             })
         return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
 
-
 class ZerodhaAccountViewSet(viewsets.ModelViewSet):
-    serializer_class = ZerodhaAccountSerializer
-    permission_classes = [AllowAny]
+    queryset = ZerodhaAccount.objects.all()
+    serializer_class = OrderSerializer
 
-    def get_queryset(self):
-        if self.request.user.is_authenticated:
-            return ZerodhaAccount.objects.filter(user=self.request.user)
-        return ZerodhaAccount.objects.none()
-
-    @action(detail=False, methods=['post'])
-    def login(self, request):
-        serializer = self.get_serializer(data=request.data)
+    @action(detail=True, methods=['post'], url_path='place_order')
+    def place_order(self, request, pk=None):
+        serializer = OrderSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                # Attempt to login and get enctoken
-                enctoken = login_with_credentials(
-                    serializer.validated_data['zerodha_user_id'],
-                    serializer.validated_data['zerodha_password'],
-                    serializer.validated_data['totp_secret']
-                )
-
-                # If user is authenticated, associate the account with the user
-                if request.user.is_authenticated:
-                    user = request.user
-                else:
-                    # If not authenticated, create or get a user based on Zerodha user ID
-                    user, created = User.objects.get_or_create(
-                        username=serializer.validated_data['zerodha_user_id']
-                    )
-
-                # Create or update the Zerodha account
-                zerodha_account, created = ZerodhaAccount.objects.update_or_create(
-                    user=user,
-                    zerodha_user_id=serializer.validated_data['zerodha_user_id'],
-                    defaults={
-                        'zerodha_password': serializer.validated_data['zerodha_password'],
-                        'totp_secret': serializer.validated_data['totp_secret'],
-                        'enctoken': enctoken,
-                        'last_token_update': timezone.now()
-                    }
-                )
-
-                return Response({
-                    "message": "Login successful",
-                    "account_id": zerodha_account.id
-                })
-            except Exception as e:
-                return Response(
-                    {"error": f"Failed to login to Zerodha: {str(e)}"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=True, methods=['post'])
-    def place_order(self, request, pk=None):
-        zerodha_account = self.get_object()
-        order_serializer = OrderSerializer(data=request.data)
-        
-        if order_serializer.is_valid():
-            try:
+                zerodha_account = self.get_object()
                 kite = KiteApp(
+                    zerodha_account.api_key,
                     zerodha_account.zerodha_user_id,
                     zerodha_account.enctoken
                 )
-                
-                order_data = {
-                    "tradingsymbol": order_serializer.validated_data["symbol"],
-                    "quantity": order_serializer.validated_data["quantity"],
-                    "order_type": order_serializer.validated_data["order_type"],
-                    "price": order_serializer.validated_data.get("price", None),  
-                    "transaction_type": "BUY", 
-                    "product": "MIS",  
-                    "variety": "amo",  
-                }
 
-                order_id = kite.place_order(**order_data)  
-                
-                return Response({
-                    "message": "Order placed successfully",
-                    "order_id": order_id
-                }, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response(
-                    {"error": f"Failed to place order: {str(e)}"},
-                    status=status.HTTP_400_BAD_REQUEST
+                order_id = kite.place_order(
+                    variety=serializer.validated_data['variety'],
+                    exchange=serializer.validated_data['exchange'],
+                    tradingsymbol=serializer.validated_data['tradingsymbol'],
+                    transaction_type=serializer.validated_data['transaction_type'],
+                    quantity=serializer.validated_data['quantity'],
+                    product=serializer.validated_data['product'],
+                    order_type=serializer.validated_data['order_type'],
+                    price=serializer.validated_data['price'],
+                    validity=serializer.validated_data['validity']
                 )
-        return Response(order_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['get'])
-    def get_user_profile(self, request, pk=None):
-        zerodha_account = self.get_object()
-        try:
-            kite = KiteApp(
-                zerodha_account.zerodha_user_id,
-                zerodha_account.enctoken
-            )
-            profile = kite.profile()
-            return Response(profile)
-        except Exception as e:
-            return Response(
-                {"error": f"Failed to fetch user profile: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+                return Response({"message": "Order placed successfully", "order_id": order_id}, status=status.HTTP_200_OK)
+            except ZerodhaAccount.DoesNotExist:
+                return Response({"error": "Zerodha account not found"}, status=status.HTTP_404_NOT_FOUND)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
