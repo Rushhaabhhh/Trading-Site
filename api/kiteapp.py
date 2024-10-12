@@ -32,6 +32,7 @@ class KiteApp(KiteConnect):
             self.root = self.root2
         
         url = self.root + uri
+        print(url)
         headers = self.headers
         if self.debug:
             log.debug(f"Request: {method} {url} {params} {headers}")

@@ -1,105 +1,97 @@
 const express = require('express');
 const cors = require('cors');
-const jwt = require('jsonwebtoken');
+const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
 const fs = require('fs').promises;
+const dotenv = require('dotenv');
 
-const app = express();
-const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
-const KITE_API_KEY = process.env.KITE_API_KEY || 'iulrmlbouikhv7x7';
-let kiteApp;
-
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-const verifyToken = (req, res, next) => {
-  const token = req.headers['authorization'];
-  if (!token) return res.status(403).json({ success: false, message: 'No token provided.' });
-
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ success: false, message: 'Failed to authenticate token.' });
-    req.userId = decoded.id;
-    next();
-  });
-};
+dotenv.config();
 
 class KiteApp {
   constructor(apiKey, userId, enctoken) {
     this.apiKey = apiKey;
     this.userId = userId;
     this.enctoken = enctoken;
-    this.root = "https://api.kite.trade";
-    this.root2 = "https://kite.zerodha.com/oms";
+    this.root = "https://kite.zerodha.com/oms";
     this.headers = {
       "X-Kite-Version": "3",
-      'Authorization': `enctoken ${this.enctoken}`
+      'Authorization': `enctoken ${this.enctoken}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
     };
     this._routes = {
-      place_order: "/orders/regular",
-      // Add other routes as needed
+      place_order: '/orders/regular',
     };
   }
 
-  async _request(route, method, params = null, isJson = false) {
-    let uri = this._routes[route];
-    let url = uri.endsWith("instruments") ? this.root + uri : this.root2 + uri;
+  async _request(route, method, params = null) {
+    const uri = this._routes[route];
+    if (!uri) throw new Error('Route not found');
 
+    let url = this.root + uri;
     const options = {
       method,
       headers: this.headers,
     };
 
     if (method === 'POST' || method === 'PUT') {
-      options.body = isJson ? JSON.stringify(params) : new URLSearchParams(params);
-    } else if (method === 'GET' || method === 'DELETE') {
-      url += '?' + new URLSearchParams(params);
+      options.body = new URLSearchParams(params).toString();
+    } else if (params) {
+      const queryString = new URLSearchParams(params).toString();
+      url += '?' + queryString;
     }
+
+    console.log('Request headers:', this.headers);
+    console.log(`Request: ${method} ${url}`);
+    console.log('Request body:', options.body);
 
     try {
       const response = await fetch(url, options);
       const contentType = response.headers.get('content-type');
 
-      if (contentType && contentType.includes('json')) {
+      if (contentType && contentType.includes('application/json')) {
         const data = await response.json();
-        if (data.error_type) {
-          throw new Error(data.message);
-        }
+        console.log('Response:', data);
+        if (data.status === 'error') throw new Error(data.message);
         return data.data;
-      } else if (contentType && contentType.includes('csv')) {
-        return await response.text();
       } else {
-        throw new Error(`Unknown Content-Type (${contentType}) with response: ${await response.text()}`);
+        const text = await response.text();
+        console.log('Response:', text);
+        throw new Error(`Unexpected response: ${text}`);
       }
     } catch (error) {
-      console.error('API request error:', error);
+      console.error('Request error:', error);
       throw error;
     }
   }
 
-  // kws() {
-  //   // This method would need to be implemented separately, as it requires a WebSocket connection
-  //   // which is not directly translatable from the Python KiteTicker
-  //   throw new Error("WebSocket functionality not implemented in this version");
-  // }
+  async placeOrder(params) {
+    return this._request('place_order', 'POST', params);
+  }
 }
 
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+const KITE_API_KEY = process.env.KITE_API_KEY; 
+let kiteApp;
+
+// Login with credentials function
 async function loginWithCredentials(userId, password, twofa) {
   try {
-    const loginResponse = await fetch('https://kite.zerodha.com/api/login', {
+    let response = await fetch('https://kite.zerodha.com/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ user_id: userId, password })
     });
 
-    if (!loginResponse.ok) {
-      throw new Error("Login failed. Check your credentials.");
-    }
+    if (!response.ok) throw new Error("Login failed. Check your credentials.");
 
-    const loginData = await loginResponse.json();
-
-    const twoFaResponse = await fetch('https://kite.zerodha.com/api/twofa', {
+    const loginData = await response.json();
+    response = await fetch('https://kite.zerodha.com/api/twofa', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -108,55 +100,68 @@ async function loginWithCredentials(userId, password, twofa) {
         user_id: loginData.data.user_id
       })
     });
+    // Fetching the raw cookies from the response headers
+    const cookies = response.headers.raw()['set-cookie'];
 
-    if (!twoFaResponse.ok) {
-      throw new Error("2FA failed.");
+    // Finding the enctoken from the cookies
+    const tokenValue = cookies.find(cookie => cookie.startsWith('enctoken='));
+
+    // Check if enctoken exists, then split and extract its value
+    if (tokenValue) {
+        enctoken = tokenValue.replace('enctoken=', '').split(';')[0]
+        console.log(enctoken); 
+    } else {
+        console.error('enctoken not found in cookies');
     }
 
-    const cookies = twoFaResponse.headers.raw()['set-cookie'];
-    const enctokenCookie = cookies.find(cookie => cookie.startsWith('enctoken='));
-
-    if (!enctokenCookie) {
-      throw new Error("enctoken not found in cookies");
-    }
-
-    const enctoken = enctokenCookie.split(';')[0].split('=')[1];
 
     await fs.mkdir('utils', { recursive: true });
     await fs.writeFile('utils/enctoken.txt', enctoken);
 
     return enctoken;
   } catch (error) {
-    console.error('Login error:', error.message);
+    console.error('Login error:', error);
     throw error;
   }
 }
 
+// Login route
 app.post('/api/login', async (req, res) => {
   try {
     const { userId, password, twofa } = req.body;
     const enctoken = await loginWithCredentials(userId, password, twofa);
-    
     kiteApp = new KiteApp(KITE_API_KEY, userId, enctoken);
-
-    const token = jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: '24h' });
-
-    res.json({ success: true, message: 'Logged in successfully', token });
+    res.json({ success: true, message: 'Logged in successfully', enctoken });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-app.post('/api/place-order', verifyToken, async (req, res) => {
+// Place order route
+app.post('/api/place-order', async (req, res) => {
   try {
-    if (!kiteApp) {
-      throw new Error('Not logged in. Please login first.');
+    if (!kiteApp) throw new Error('Not logged in. Please login first.');
+
+    console.log('Order Request Body:', req.body);
+
+    const orderParams = {
+      exchange: req.body.exchange,
+      tradingsymbol: req.body.symbol,
+      transaction_type: req.body.transactionType,
+      quantity: req.body.quantity,
+      product: 'CNC',
+      order_type: req.body.orderType,
+      validity: 'DAY',
+    };
+
+    if (req.body.orderType === 'LIMIT' && req.body.price) {
+      orderParams.price = req.body.price;
     }
 
-    const orderResponse = await kiteApp._request('place_order', 'POST', req.body);
-
+    const orderResponse = await kiteApp.placeOrder(orderParams);
     res.json({ success: true, data: orderResponse });
   } catch (error) {
+    console.error('Error placing order:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

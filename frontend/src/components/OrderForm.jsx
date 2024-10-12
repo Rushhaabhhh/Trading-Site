@@ -1,7 +1,6 @@
-// components/OrderForm.js
 import React, { useState } from 'react';
 
-function OrderForm({ onPlaceOrder }) {
+function OrderForm({ token, onPlaceOrder }) {
   const [orderData, setOrderData] = useState({
     exchange: 'NSE',
     symbol: '',
@@ -13,7 +12,7 @@ function OrderForm({ onPlaceOrder }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setOrderData(prevData => ({ ...prevData, [name]: value }));
+    setOrderData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   const handleSubmit = (e) => {

@@ -5,26 +5,26 @@ import OrderForm from '../components/OrderForm';
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [token, setToken] = useState('');
-  const [message, setMessage] = useState({ text: '', type: '' });
+  const [message, setMessage] = useState('');
 
   const handleLogin = async (credentials) => {
     try {
-      // Encode Base64 credentials
-      const base64Credentials = btoa(`${credentials.userId}:${credentials.password}`);
+      const { userId, password, twofa } = credentials; 
+
       const response = await fetch('http://localhost:5000/api/login', {
         method: 'POST',
         headers: {
-          'Authorization': `Basic ${base64Credentials}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, password, twofa }),
       });
-      
+
       const data = await response.json();
-      if (response.ok) { // Successful login
+      if (response.ok) {
         setIsLoggedIn(true);
-        setToken(data.token); // Store token for further requests
+        setToken(data.enctoken);
         setMessage({ text: 'Logged in successfully', type: 'success' });
-      } else { // Handle login error
+      } else {
         setMessage({ text: data.message || 'Login failed', type: 'error' });
       }
     } catch (error) {
@@ -37,11 +37,15 @@ function App() {
       const response = await fetch('http://localhost:5000/api/place-order', {
         method: 'POST',
         headers: {
+          'X-Kite-Version': '3',
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // Include the token in Bearer format
+          'Authorization': `enctoken ${token}`, 
         },
         body: JSON.stringify(orderData),
       });
+
+      console.log("token, ", token);
+
       const data = await response.json();
       if (response.ok) {
         setMessage({ text: 'Order placed successfully', type: 'success' });
@@ -54,20 +58,22 @@ function App() {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Kite Connect Test</h1>
-      {message.text && (
-        <div className={`p-4 mb-4 rounded ${
-          message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-        }`}>
-          {message.text}
-        </div>
-      )}
-      {!isLoggedIn ? (
-        <LoginForm onLogin={handleLogin} />
-      ) : (
-        <OrderForm onPlaceOrder={handlePlaceOrder} />
-      )}
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100 p-4">
+      <div className="max-w-md w-full bg-white shadow-md rounded-lg p-6">
+        <h1 className="text-3xl font-bold mb-6 text-center">Kite Connect</h1>
+        {message.text && (
+          <div className={`p-4 mb-4 text-center rounded ${
+            message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+          }`}>
+            {message.text}
+          </div>
+        )}
+        {!isLoggedIn ? (
+          <LoginForm onLogin={handleLogin} />
+        ) : (
+          <OrderForm onPlaceOrder={handlePlaceOrder} />
+        )}
+      </div>
     </div>
   );
 }
