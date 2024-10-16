@@ -6,7 +6,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChartLine, faCopy } from "@fortawesome/free-solid-svg-icons";
 import { faArrowRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 
-import Chart from '../components/Chart';
 import logo from '../assets/AlgoLogo.png';
 import ProfileModal from '../components/ProfileModal';
 
