@@ -8,6 +8,7 @@ import { faArrowRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 
 import logo from '../assets/AlgoLogo.png';
 import ProfileModal from '../components/ProfileModal';
+import OrderForm from '../components/OrderForm';
 
 const CopyTradingPage = () => {
     const [masterTrades, setMasterTrades] = useState([
@@ -28,7 +29,7 @@ const CopyTradingPage = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        Modal.setAppElement('#ProfileModal'); // Ensure this is the correct ID for your app element
+        Modal.setAppElement('#ProfileModal'); 
     }, []);
 
     // Copy an existing trade
@@ -119,6 +120,8 @@ const CopyTradingPage = () => {
                     logout={logout} 
                 />
             </div>
+
+            <OrderForm />
 
             <div className="container mx-auto px-4 pt-2 pb-12">
                 <header className="text-center mb-12">
