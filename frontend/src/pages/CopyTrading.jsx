@@ -1,14 +1,12 @@
-import Modal from 'react-modal';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-scroll';
 import { useNavigate } from 'react-router-dom';
-import React, { useEffect, useState } from 'react';
+import Modal from 'react-modal';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChartLine, faCopy } from "@fortawesome/free-solid-svg-icons";
-import { faArrowRightFromBracket } from '@fortawesome/free-solid-svg-icons';
+import { faChartLine, faCopy, faArrowRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 
 import logo from '../assets/AlgoLogo.png';
 import ProfileModal from '../components/ProfileModal';
-import OrderForm from '../components/OrderForm';
 
 const CopyTradingPage = () => {
     const [masterTrades, setMasterTrades] = useState([
@@ -19,37 +17,52 @@ const CopyTradingPage = () => {
     const [userTrades, setUserTrades] = useState([]);
     const [selectedTrade, setSelectedTrade] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
-    const [openDropdown, setOpenDropdown] = useState(null);
     const [isProfileModalOpen, setProfileModalOpen] = useState(false);
-
-    const toggleProfileModal = () => {
-        setProfileModalOpen(!isProfileModalOpen);
-    }
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [token, setToken] = useState('');
 
     const navigate = useNavigate();
 
+    // Fix the react-modal error by using a valid selector
     useEffect(() => {
-        Modal.setAppElement('#ProfileModal'); 
+        Modal.setAppElement(document.body); // Set app element to body or #root
     }, []);
 
     // Copy an existing trade
     const copyTrade = () => {
         if (!selectedTrade) return;
+
         const existingTrade = userTrades.find((trade) => trade.id === selectedTrade.id);
+        const newTrade = {
+            ...selectedTrade,
+            strategy: 'New Strategy'
+        };
 
         if (existingTrade) {
             const updatedTrades = userTrades.filter((trade) => trade.id !== selectedTrade.id);
-            const newTrade = {
-                ...selectedTrade,
-                strategy: 'New Strategy'
-            };
             setUserTrades([...updatedTrades, newTrade]);
         } else {
-            const newUserTrades = [...userTrades, selectedTrade];
-            setUserTrades(newUserTrades);
+            setUserTrades([...userTrades, selectedTrade]);
         }
         setModalOpen(false);
         setSelectedTrade(null);
+    };
+
+    const handleLogin = (enctoken) => {
+        setIsLoggedIn(true);
+        setToken(enctoken);
+        localStorage.setItem('token', enctoken);
+    };
+
+    const handleLogout = () => {
+        setIsLoggedIn(false);
+        setToken('');
+        localStorage.removeItem('token');
+        navigate('/');
+    };
+
+    const toggleProfileModal = () => {
+        setProfileModalOpen(!isProfileModalOpen);
     };
 
     const TradeCard = ({ trade, isMasterTrade = false }) => (
@@ -63,7 +76,7 @@ const CopyTradingPage = () => {
             </div>
             {isMasterTrade && (
                 <button 
-                    className="mt-4 w-1/2 ml-40 px-4 py-2 bg-gradient-to-r from-gray-700  to-gray-600 text-white rounded-full hover:from-gray-600 hover:to-gray-800  hover:scale-105 transition duration-300 ease-in-out"
+                    className="mt-4 w-1/2 ml-40 px-4 py-2 bg-gradient-to-r from-gray-700 to-gray-600 text-white rounded-full hover:from-gray-600 hover:to-gray-800 hover:scale-105 transition duration-300 ease-in-out"
                     onClick={() => {
                         setSelectedTrade(trade);
                         setModalOpen(true);
@@ -75,22 +88,13 @@ const CopyTradingPage = () => {
         </div>
     );
 
-    const toggleDropdown = (type) => {
-        setOpenDropdown((prev) => (prev === type ? null : type));
-    };
-
-    const logout = () => {
-        localStorage.removeItem('token');
-        navigate('/');
-    };
-
     return (
         <div>
             <svg className='rotate-180' width="100%" height="120" viewBox="0 0 200 100" preserveAspectRatio="none">
-                <path d="M0,60 Q20,0 50,30 Q80,60 100,30 Q120,0 150,30 Q180,60 200,30 L200,100 L0,100 Z" fill="#ff6a88"/>
+                <path d="M0,60 Q20,0 50,30 Q80,60 100,30 Q120,0 150,30 Q180,60 200,30 L200,100 L0,100 Z" fill="#ff6a88" />
             </svg>
 
-            <nav className='flex justify-between p-4 mt-1 fixed top-0 left-0 right-0 z-35 '>
+            <nav className='flex justify-between p-4 mt-1 fixed top-0 left-0 right-0 z-35'>
                 <div className="flex items-center">
                     <img src={logo} alt="Logo" className="h-10 w-10 mr-2" />
                     <span className="text-2xl font-bold">THE ALGOMATIC</span>
@@ -108,20 +112,17 @@ const CopyTradingPage = () => {
                     onClick={toggleProfileModal} 
                     className="flex items-center px-4 py-2 rounded-3xl text-lg hover:text-gray-800 hover:bg-opacity-30 hover:border-gray-800 hover:border-2 transition-colors duration-300 bg-black bg-opacity-0 border-2 border-black text-black font-bold"
                 >
-                    <FontAwesomeIcon icon={faArrowRightFromBracket} className='mr-2' /> Profile
+                    <FontAwesomeIcon icon={faArrowRightFromBracket} className='mr-2' /> 
+                    {isLoggedIn ? 'Profile' : 'Connect'}
                 </button>
             </nav>
 
-            <div id="ProfileModal">
-                {/* Profile Modal */}
-                <ProfileModal 
-                    isOpen={isProfileModalOpen} 
-                    onRequestClose={toggleProfileModal} 
-                    logout={logout} 
-                />
-            </div>
-
-            <OrderForm />
+            <ProfileModal 
+                isOpen={isProfileModalOpen} 
+                onRequestClose={toggleProfileModal} 
+                onLogin={handleLogin}
+                onLogout={handleLogout}
+            />
 
             <div className="container mx-auto px-4 pt-2 pb-12">
                 <header className="text-center mb-12">
@@ -129,7 +130,6 @@ const CopyTradingPage = () => {
                     <h2 className="text-3xl text-gray-600 italic">Select and replicate winning strategies!</h2>
                 </header>
                 <div className="flex flex-wrap -mx-4">
-
                     {/* Master Trades */}
                     <div className="w-full md:w-1/2 px-4 mb-8">
                         <div className="bg-white rounded-lg shadow-lg overflow-hidden">

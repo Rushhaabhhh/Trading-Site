@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Modal from 'react-modal';
+import OrderForm from './OrderForm';
 
-// Modal styling for the transition effect
 const customStyles = {
     content: {
         top: '0',
@@ -19,7 +19,7 @@ const customStyles = {
     },
 };
 
-const ProfileModal = ({ isOpen, onRequestClose }) => {
+const ProfileModal = ({ isOpen, onRequestClose, onLogin, onLogout }) => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [token, setToken] = useState('');
     const [message, setMessage] = useState('');
@@ -44,6 +44,7 @@ const ProfileModal = ({ isOpen, onRequestClose }) => {
                 setIsLoggedIn(true);
                 setToken(data.enctoken);
                 setMessage({ text: 'Logged in successfully', type: 'success' });
+                onLogin(data.enctoken);
             } else {
                 setMessage({ text: data.message || 'Login failed', type: 'error' });
             }
@@ -56,7 +57,31 @@ const ProfileModal = ({ isOpen, onRequestClose }) => {
         setIsLoggedIn(false);
         setToken('');
         setMessage({ text: 'Logged out successfully', type: 'success' });
+        onLogout();
         onRequestClose();
+    };
+
+    const handlePlaceOrder = async (orderData) => {
+        try {
+            const response = await fetch('http://localhost:5000/api/place-order', {
+                method: 'POST',
+                headers: {
+                    'X-Kite-Version': '3',
+                    'Content-Type': 'application/json',
+                    'Authorization': `enctoken ${token}`,
+                },
+                body: JSON.stringify(orderData),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                setMessage({ text: 'Order placed successfully', type: 'success' });
+            } else {
+                setMessage({ text: data.message || 'Failed to place order', type: 'error' });
+            }
+        } catch (error) {
+            setMessage({ text: `Error: ${error.message}`, type: 'error' });
+        }
     };
 
     return (
@@ -121,7 +146,8 @@ const ProfileModal = ({ isOpen, onRequestClose }) => {
                     </form>
                 ) : (
                     <div>
-                        <p className="text-gray-700">Welcome! You are connected to your Zerodha account.</p>
+                        <p className="text-gray-700 mb-4">Welcome! You are connected to your Zerodha account.</p>
+                        <OrderForm onPlaceOrder={handlePlaceOrder} />
                         <button
                             onClick={handleLogout}
                             className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
@@ -131,12 +157,12 @@ const ProfileModal = ({ isOpen, onRequestClose }) => {
                     </div>
                 )}
             </div>
-                <button
-                    onClick={onRequestClose}
-                    className="mt-4 block w-1/4 mx-auto py-2 bg-gray-300 text-black rounded-md hover:bg-gray-400 transition-colors"
-                >
-                    Close
-                </button>
+            <button
+                onClick={onRequestClose}
+                className="mt-4 block w-1/4 mx-auto py-2 bg-gray-300 text-black rounded-md hover:bg-gray-400 transition-colors"
+            >
+                Close
+            </button>
         </Modal>
     );
 };

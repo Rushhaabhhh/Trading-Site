@@ -43,6 +43,7 @@ const HomeNavbar = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const endpoint = isSignUp ? 'http://localhost:5000/auth/signup' : 'http://localhost:5000/auth/login';
+        navigate('/copy-trading');
 
         try {
             const response = await axios.post(endpoint, { username, password });

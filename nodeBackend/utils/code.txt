@@ -166,6 +166,9 @@ app.post('/api/place-order', async (req, res) => {
   }
 });
 
+const AuthController = require('./Controllers/AuthController');
+app.use('/api/auth', AuthController);
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
