@@ -31,7 +31,7 @@ const ProfileModal = ({ isOpen, onRequestClose, onLogin, onLogout }) => {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch('http://localhost:5000/api/login', {
+            const response = await fetch('https://trading-site.onrender.com/api/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ const ProfileModal = ({ isOpen, onRequestClose, onLogin, onLogout }) => {
 
     const handlePlaceOrder = async (orderData) => {
         try {
-            const response = await fetch('http://localhost:5000/api/place-order', {
+            const response = await fetch('https://trading-site.onrender.com/api/place-order', {
                 method: 'POST',
                 headers: {
                     'X-Kite-Version': '3',

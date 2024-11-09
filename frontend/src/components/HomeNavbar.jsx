@@ -42,7 +42,7 @@ const HomeNavbar = () => {
     
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const endpoint = isSignUp ? 'http://localhost:5000/auth/signup' : 'http://localhost:5000/auth/login';
+        const endpoint = isSignUp ? 'https://trading-site.onrender.com/auth/signup' : 'https://trading-site.onrender.com/auth/login';
         navigate('/copy-trading');
 
         try {
