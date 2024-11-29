@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Banknote, TrendingUp, DollarSign, ShoppingCart, List, ChevronDown, Tag } from 'lucide-react'; // Importing icons from Lucide
+import { Banknote, TrendingUp, DollarSign, ShoppingCart, List, Tag } from 'lucide-react'; // Importing icons from Lucide
 
 function OrderForm({ token, onPlaceOrder }) {
   const [orderData, setOrderData] = useState({
@@ -10,21 +10,51 @@ function OrderForm({ token, onPlaceOrder }) {
     orderType: 'MARKET',
     price: '',
   });
+  const [statusMessage, setStatusMessage] = useState({ type: '', message: '' }); // State for success/error messages
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setOrderData((prevData) => ({ ...prevData, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onPlaceOrder(orderData);
+    try {
+      const response = await onPlaceOrder(orderData); // Call the parent function to place the order
+      if (response && response.success) {
+        setStatusMessage({ type: 'success', message: 'Order placed successfully!' });
+        setOrderData({
+          exchange: 'NSE',
+          symbol: '',
+          transactionType: 'BUY',
+          quantity: '',
+          orderType: 'MARKET',
+          price: '',
+        });
+      } else {
+        throw new Error(response?.message || 'Failed to place order. Please try again.');
+      }
+    } catch (error) {
+      setStatusMessage({ type: 'error', message: error.message || 'Something went wrong!' });
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-6">
       <div className="bg-white shadow-xl rounded-lg p-8 w-full max-w-lg">
         <h2 className="text-2xl font-semibold text-blue-600 text-center mb-6">Place Your Zerodha Order</h2>
+        
+        {/* Status Message */}
+        {statusMessage.message && (
+          <div
+            className={`p-4 mb-6 rounded ${
+              statusMessage.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}
+          >
+            {statusMessage.message}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Exchange Selection */}
           <div>
